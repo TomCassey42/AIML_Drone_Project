@@ -1,40 +1,14 @@
 #include "ppmTransmit.h"
+//#include "gpioPin.h"
 
 ppmTransmit::ppmTransmit(unsigned output_pin, short num_channels){	
-	outputPin = output_pin;
+	outputPin = new gpioPin(output_pin, "out");
 	numChannels = num_channels;
 	channelValues = new unsigned[num_channels];
-
-	ofstream fileOutput;
-	
-	gpioExport = string(GPIO_DIR) + string("export");
-	gpioPinDirection = string(GPIO_DIR) + string("gpio") + 
-		std::to_string(output_pin) + string("/direction");
-	gpioPinValue = string(GPIO_DIR) + string("gpio") + 
-		std::to_string(output_pin) + string("/value");
-	gpioUnexport = string(GPIO_DIR) + string("unexport");
-
-	fileOutput.open(gpioExport);
-	fileOutput << output_pin;
-	fileOutput.close();
-	
-	fileOutput.open(gpioPinDirection);
-	fileOutput << "out";
-	fileOutput.close();
-
-	fileOutput.open(gpioPinValue);
-	fileOutput << 0;
-	fileOutput.close();
-
 }
 
 ppmTransmit::~ppmTransmit(){
-	fileOutput.open(gpioPinValue);
-	fileOutput << 0;
-	fileOutput.close();
-	fileOutput.open(gpioUnexport);
-	fileOutput << outputPin;
-	fileOutput.close();
+
 }
 
 short ppmTransmit::getNumChannels(void){
@@ -50,10 +24,10 @@ void ppmTransmit::setBlankTime(unsigned val){
 	blankTime = val;
 }
 unsigned ppmTransmit::getChannelValue(unsigned chan){
-	return channelValues[chan];
+	return channelValues[chan-1];
 }
 unsigned ppmTransmit::setChannelValue(unsigned val, unsigned chan){
-	channelValues[chan] = val;
+	channelValues[chan-1] = val;
 }
 unsigned* ppmTransmit::getChannelValues(void){
 	return channelValues;
@@ -95,29 +69,22 @@ void ppmTransmit::wait(unsigned usecs){
 }
 void ppmTransmit::transmit(void){
 	unsigned channelVal;
-	fileOutput.open(gpioPinValue);
-	fileOutput << 1;
-	fileOutput.flush();
-	wait(400);
-	fileOutput << 0;
-	fileOutput.flush();
-	for (int i = 0; i < numChannels; i++){
+	outputPin->setValue(1);
+	wait(700);
+	outputPin->setValue(0);
+	for (int i = 1; i <= numChannels; i++){
 		channelVal = getChannelValue(i);
 		if (channelVal < minChannelValue - maxError) {
 			channelVal = minChannelValue - maxError;
 		} else if (channelVal > maxChannelValue + maxError) {
 			channelVal = maxChannelValue + maxError;
 		}
-		wait(channelVal - 400);
-		fileOutput << 1;
-		fileOutput.flush();
-		cout << i << "  " << channelVal << "\n";
-		wait(400);
-		fileOutput << 0;
-		fileOutput.flush();
+		wait(channelVal - 700);
+		outputPin->setValue(1);
+		wait(700);
+		outputPin->setValue(0);
 		
 	}
-	fileOutput.close();
 	wait(blankTime+100);
 }
 

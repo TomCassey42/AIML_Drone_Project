@@ -13,12 +13,13 @@
 
 using namespace std;
 
-class ppmTransmit{
+class ppmReceiver{
 
 	public:
 	
-	ppmTransmit(unsigned pin_number, short num_channels);
-	~ppmTransmit(void);
+	ppmReceiver(unsigned input_pin, short num_channels);
+	~ppmReceiver(void);
+	void wait(unsigned usecs);
 	short getNumChannels(void);
 	void setNumChannels(unsigned num);
 	unsigned getBlankTime(void);
@@ -32,21 +33,24 @@ class ppmTransmit{
 	void setMaxChannelValue(unsigned val);
 	unsigned getMaxError(void);
 	void setMaxError(unsigned val);
-	void startTransmission(void);
-	void endTransmission(void);
+	void startReception(void);
+	void endReception(void);
 	
 
 	private:
 	
-	std::thread* transmitThread;
-	gpioPin* outputPin;
+	
+	std::thread* receiveThread;
+	gpioPin* inputPin;
 	unsigned blankTime = 2100;
 	unsigned minChannelValue = 1000;
 	unsigned maxChannelValue = 2000;
 	unsigned maxError = 10;
 	short numChannels;
 	unsigned* channelValues;
-	bool transmitting = false;
-	void transmit(void);
-	void wait(unsigned usecs);
+	unsigned microsAtPreviousPulse;
+	unsigned microsAtPulse;
+	unsigned pulseCounter;
+	bool receiving = false;
+	void receive(void);
 };
